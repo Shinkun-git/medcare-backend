@@ -16,49 +16,78 @@ export const getAllDoctors = async()=>{
     }
 };
 
-export const getFilteredDoctors = async(page, limit, rating , experience, gender)=>{
-     let query = "SELECT * FROM doctor WHERE 1=1";
-    let countQuery = "SELECT COUNT(*) AS count FROM doctor WHERE 1=1";
+export const getFilteredDoctors = async (page = 1, limit = 6, rating, experience, gender) => {
+    let query = "SELECT * FROM doctor";
+    let countQuery = "SELECT COUNT(*) AS count FROM doctor";
+    
+    const conditions = [];
     const values = [];
-
-    // Apply filters to both countQuery and query
-    if (rating) {
-        query += ` AND rating = $${values.length + 1}`;
-        countQuery += ` AND rating = $${values.length + 1}`;
-        values.push(rating);
+    
+    // ✅ Apply filters dynamically
+    if (rating && !isNaN(Number(rating))) {
+        conditions.push(`rating = $${values.length + 1}`);
+        values.push(Number(rating));
     }
     if (experience) {
-        query += ` AND experience >= $${values.length + 1}`;
-        countQuery += ` AND experience >= $${values.length + 1}`;
-        values.push(experience);
+        const experienceRanges = {
+            "15+ years": [15, Infinity], // 15 or more years
+            "10-15 years": [10, 15], // Between 10 and 15 years
+            "5-10 years": [5, 10], // Between 5 and 10 years
+            "3-5 years": [3, 5], // Between 3 and 5 years
+            "1-3 years": [1, 3], // Between 1 and 3 years
+            "0-1 years": [0, 1], // Between 0 and 1 years
+        };
+    
+        if (experienceRanges[experience]) {
+            const [minExp, maxExp] = experienceRanges[experience];
+            if (maxExp === Infinity) {
+                conditions.push(`experience >= $${values.length + 1}`);
+                values.push(minExp);
+            } else {
+                conditions.push(`experience BETWEEN $${values.length + 1} AND $${values.length + 2}`);
+                values.push(minExp, maxExp);
+            }
+        }
     }
+    
     if (gender && gender !== "Show All") {
-        query += ` AND gender = $${values.length + 1}`;
-        countQuery += ` AND gender = $${values.length + 1}`;
+        conditions.push(`gender = $${values.length + 1}`);
         values.push(gender);
     }
 
-    // Add pagination
+    // ✅ Construct WHERE clause dynamically
+    const whereClause = conditions.length ? ` WHERE ${conditions.join(" AND ")}` : "";
+
+    // ✅ Append WHERE clause to both queries
+    query += whereClause;
+    countQuery += whereClause;
+
+    // ✅ Pagination (Only for main query)
     const offset = (page - 1) * limit;
     query += ` LIMIT $${values.length + 1} OFFSET $${values.length + 2}`;
-    values.push(limit, offset);
+    values.push(Number(limit), Number(offset));
 
     try {
-        const totalDoctors = await pool.query(countQuery, values.slice(0, values.length - 2)); // Run count query without limit/offset
-        const doctors = await pool.query(query, values); // Run main query
+        // ✅ Run count query without pagination
+        const totalDoctors = await pool.query(countQuery, values.slice(0, values.length - 2));
+        const totalCount = Number(totalDoctors.rows[0].count);
+
+        // ✅ Run main query with pagination
+        const doctors = await pool.query(query, values);
+
         return {
             success: true,
-            data:{
-                total: totalDoctors.rows[0].count, // Total count of filtered doctors
-                pages: Math.ceil(totalDoctors.rows[0].count / limit), // Total pages
-                data: doctors.rows, // Filtered doctors for the current page
-            }
+            data: {
+                total: totalCount, // Total filtered count
+                pages: Math.ceil(totalCount / limit), // Total pages
+                data: doctors.rows, // Doctors for the current page
+            },
         };
     } catch (error) {
         console.error("Error fetching doctors:", error);
         return {
             success: false,
-            error: error,
+            error: error.message,
         };
     }
 };
