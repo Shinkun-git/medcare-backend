@@ -70,8 +70,9 @@ export const getFilteredDoctors = async (page = 1, limit = 6, rating, experience
     try {
         // ✅ Run count query without pagination
         const totalDoctors = await pool.query(countQuery, values.slice(0, values.length - 2));
+        console.log("Total doctors:", totalDoctors.rows);
         const totalCount = Number(totalDoctors.rows[0].count);
-
+        console.log("Total count:", totalCount);
         // ✅ Run main query with pagination
         const doctors = await pool.query(query, values);
 
@@ -85,6 +86,38 @@ export const getFilteredDoctors = async (page = 1, limit = 6, rating, experience
         };
     } catch (error) {
         console.error("Error fetching doctors:", error);
+        return {
+            success: false,
+            error: error.message,
+        };
+    }
+};
+
+export const searchDoctors = async (searchQuery, page = 1, limit = 6) => {
+    try {
+        const countQuery = `SELECT COUNT(*) AS count FROM doctor WHERE name ILIKE $1 OR specification ILIKE $1`;
+        const searchSQL = `SELECT * FROM doctor WHERE name ILIKE $1 OR specification ILIKE $1 LIMIT $2 OFFSET $3`;
+
+        const offset = (page - 1) * limit;
+        const searchParam = `%${searchQuery}%`;
+
+        // Get total count of matching doctors
+        const totalDoctors = await pool.query(countQuery, [searchParam]);
+        const totalCount = Number(totalDoctors.rows[0].count);
+
+        // Get paginated search results
+        const doctors = await pool.query(searchSQL, [searchParam, Number(limit), Number(offset)]);
+        console.log("searchDoctors -> doctors", doctors.rows);
+        return {
+            success: true,
+            data: {
+                total: totalCount, // Total matching doctors
+                pages: Math.ceil(totalCount / limit), // Total pages
+                data: doctors.rows, // Doctors for current page
+            },
+        };
+    } catch (error) {
+        console.error("Error searching doctors:", error);
         return {
             success: false,
             error: error.message,
