@@ -124,3 +124,23 @@ export const searchDoctors = async (searchQuery, page = 1, limit = 6) => {
         };
     }
 };
+
+export const findDoctorById = async (doctorId) => {
+    try{
+        console.log('Doctor ID : ',doctorId);
+        const result = await pool.query('SELECT * FROM doctor WHERE doc_id = $1',[doctorId]);
+        console.log('Result : ',result.rows[0].name);
+        if(result.rowCount !== 0){   
+            return {
+                success: true,
+                data: result.rows[0],
+            }
+        } throw new Error('No doctor found');
+    } catch(err){
+        console.log('Error in findDoctorById service : ',err);
+        return {
+            success: false,
+            error: err.message || 'Error in findDoctorById service',
+        }
+    }
+}
