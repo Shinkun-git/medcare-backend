@@ -107,7 +107,7 @@ export const searchDoctors = async (searchQuery, page = 1, limit = 6) => {
 
         // Get paginated search results
         const doctors = await pool.query(searchSQL, [searchParam, Number(limit), Number(offset)]);
-        console.log("searchDoctors -> doctors", doctors.rows);
+        console.log("searchDoctors -> doctors", doctors.rows.map((doctor) => doctor.name));
         return {
             success: true,
             data: {

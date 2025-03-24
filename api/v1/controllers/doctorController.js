@@ -19,9 +19,9 @@ router.get('/', async (req, res) => {
 
 router.get('/searchDoctor', async (req, res) => {
     try{
-        const {searchQuery} = req.query;
+        const {page,limit,searchQuery} = req.query;
         // console.log('Search Query',searchQuery);
-        const response = await searchDoctors(searchQuery);
+        const response = await searchDoctors(searchQuery,page,limit);
         if(response.success){
             return res.status(200).send({data: response.data});
         } else throw new Error('Error in search API');
