@@ -2,15 +2,15 @@ import express from 'express';
 import api from './api/index.js';
 import 'dotenv/config';
 import cors from "cors";
-
+import cookieParser from 'cookie-parser';
 const app = express();
 
+app.use(cookieParser());
 app.use(cors({
     origin: "http://localhost:3000",
     methods: "GET,POST,PUT,DELETE",
     credentials: true
 }));
-
 
 app.use('/api',api);
 

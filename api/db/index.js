@@ -1,7 +1,6 @@
 import pkg from 'pg';
 import util from 'util';
-import 'dotenv/config';
-
+import dotenv from 'dotenv/config';
 const { Pool } = pkg;
 
 const sql_pool = new Pool({

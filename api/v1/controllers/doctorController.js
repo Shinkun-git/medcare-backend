@@ -1,10 +1,10 @@
 import express from 'express';
 import { getFilteredDoctors, searchDoctors, findDoctorById, getAllDoctors } from '../services/doctorService.js';
-
+import { authenticateUser } from '../../middleware/authMiddleware.js';
 const router = express.Router();
 
 
-router.get('/all', async (req, res) => {
+router.get('/all', authenticateUser, async (req, res) => {
     try {
         const response = await getAllDoctors();
         if (response.success) {
@@ -16,7 +16,7 @@ router.get('/all', async (req, res) => {
     }
 });
 
-router.get('/', async (req, res) => {
+router.get('/', authenticateUser, async (req, res) => {
     try {
         const { page, limit, rating, experience, gender } = req.query;
         console.log(`=============>pges ${page} limit ${limit} rating ${rating} exp  ${experience} gen ${gender}`);
@@ -30,7 +30,7 @@ router.get('/', async (req, res) => {
     }
 });
 
-router.get('/searchDoctor', async (req, res) => {
+router.get('/searchDoctor', authenticateUser, async (req, res) => {
     try {
         const { page, limit, searchQuery } = req.query;
         // console.log('Search Query',searchQuery);
@@ -44,7 +44,7 @@ router.get('/searchDoctor', async (req, res) => {
     }
 });
 
-router.get('/searchDoctor/:id', async (req, res) => {
+router.get('/searchDoctor/:id', authenticateUser, async (req, res) => {
     try {
         const { id } = req.params;
         const response = await findDoctorById(id);
