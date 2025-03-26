@@ -1,5 +1,6 @@
 import express from 'express';
-import { getFilteredDoctors, searchDoctors, findDoctorById, getAllDoctors, requestSlot } from '../services/doctorService.js';
+import { getFilteredDoctors, searchDoctors, findDoctorById, getAllDoctors,
+     requestSlot, createDoctor } from '../services/doctorService.js';
 import { authenticateUser } from '../../middleware/authMiddleware.js';
 const router = express.Router();
 
@@ -70,4 +71,16 @@ router.post('/book', async(req, res) => {
     }
 });
 
+
+//admin only routes
+router.post('/createDoctor', async (req, res) => {
+    try{
+        const response = await createDoctor(req.body);
+        if(!response.success) throw new Error('Error in creating doctor');
+        return res.status(200).send({data: response.data});
+    } catch(err){
+        console.log('Create doctor controller catch ', err);
+        return res.status(400).send({ message: err.message || 'Error in create doctor controller' });
+    }
+});
 export default router;

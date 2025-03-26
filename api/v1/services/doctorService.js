@@ -164,3 +164,24 @@ export const requestSlot = async(user_email,doc_id,time,date,mode)=>{
         }
     }
 }
+
+export const createDoctor = async ({name,gender,specification,experience,description,location,degree,availability }) => {
+    try{
+        if(!name || !gender || !specification || !experience || !description || !location || !degree || !availability)  throw new Error('Mandatory input missing');
+        const result = await pool.query(
+            `INSERT INTO doctor (name,gender,specification,experience,description,location,degree,availability) 
+            VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+        [name,gender,specification,experience,description,location,degree,JSON.stringify(availability)]);
+        if(!result.rowCount) throw new Error('Error in creating doctor');
+        return {
+            success: true,
+            data: result.rows[0],
+        }
+    } catch(err){
+        console.log('Error in createDoctor service : ',err);
+        return {
+            success: false,
+            error: err.message || 'Error in createDoctor service',
+        }
+    }
+}
