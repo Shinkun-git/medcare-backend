@@ -1,17 +1,17 @@
 import pool from '../../db/index.js';
 
-export const getAllDoctors = async()=>{
+export const getAllDoctors = async () => {
     try {
-        const result = await pool.query('SELECT * FROM doctor',[]);
+        const result = await pool.query('SELECT * FROM doctor', []);
         // console.log('Query response (in service) ',result);
         return {
             success: true,
-            data : result.rows,
+            data: result.rows,
         }
-    } catch(err){
+    } catch (err) {
         return {
-            success : false,
-            error : err,
+            success: false,
+            error: err,
         }
     }
 };
@@ -19,10 +19,10 @@ export const getAllDoctors = async()=>{
 export const getFilteredDoctors = async (page = 1, limit = 6, rating, experience, gender) => {
     let query = "SELECT * FROM doctor";
     let countQuery = "SELECT COUNT(*) AS count FROM doctor";
-    
+
     const conditions = [];
     const values = [];
-    
+
     // ✅ Apply filters dynamically
     if (rating && !isNaN(Number(rating))) {
         conditions.push(`rating = $${values.length + 1}`);
@@ -37,7 +37,7 @@ export const getFilteredDoctors = async (page = 1, limit = 6, rating, experience
             "1-3 years": [1, 3], // Between 1 and 3 years
             "0-1 years": [0, 1], // Between 0 and 1 years
         };
-    
+
         if (experienceRanges[experience]) {
             const [minExp, maxExp] = experienceRanges[experience];
             if (maxExp === Infinity) {
@@ -49,7 +49,7 @@ export const getFilteredDoctors = async (page = 1, limit = 6, rating, experience
             }
         }
     }
-    
+
     if (gender && gender !== "Show All") {
         conditions.push(`gender = $${values.length + 1}`);
         values.push(gender);
@@ -126,18 +126,18 @@ export const searchDoctors = async (searchQuery, page = 1, limit = 6) => {
 };
 
 export const findDoctorById = async (doctorId) => {
-    try{
-        console.log('Doctor ID : ',doctorId);
-        const result = await pool.query('SELECT * FROM doctor WHERE doc_id = $1',[doctorId]);
-        console.log('Result : ',result.rows[0].name);
-        if(result.rowCount !== 0){   
+    try {
+        console.log('Doctor ID : ', doctorId);
+        const result = await pool.query('SELECT * FROM doctor WHERE doc_id = $1', [doctorId]);
+        console.log('Result : ', result.rows[0].name);
+        if (result.rowCount !== 0) {
             return {
                 success: true,
                 data: result.rows[0],
             }
         } throw new Error('No doctor found');
-    } catch(err){
-        console.log('Error in findDoctorById service : ',err);
+    } catch (err) {
+        console.log('Error in findDoctorById service : ', err);
         return {
             success: false,
             error: err.message || 'Error in findDoctorById service',
@@ -145,19 +145,19 @@ export const findDoctorById = async (doctorId) => {
     }
 }
 
-export const requestSlot = async(user_email,doc_id,time,date,mode)=>{
-    try{
+export const requestSlot = async (user_email, doc_id, time, date, mode) => {
+    try {
         const result = await pool.query
-        (`INSERT INTO slot_booking(user_email,doc_id,slot_time,slot_date,book_mode,status) 
-            VALUES($1,$2,$3,$4,$5,$6) RETURNING *`,[user_email,doc_id,time,date,mode,"pending"]);
+            (`INSERT INTO slot_booking(user_email,doc_id,slot_time,slot_date,book_mode,status) 
+            VALUES($1,$2,$3,$4,$5,$6) RETURNING *`, [user_email, doc_id, time, date, mode, "pending"]);
         // console.log('Result(requestSlot service) : ------->',result);
-        if(result.rowCount === 0)   throw new Error('Error in booking slot');
+        if (result.rowCount === 0) throw new Error('Error in booking slot');
         return {
             success: true,
             data: result.rows[0],
         }
-    } catch(err){
-        console.log('Error in requestSlot service : ',err);
+    } catch (err) {
+        console.log('Error in requestSlot service : ', err);
         return {
             success: false,
             error: err.message || 'Error in requestSlot service',
@@ -165,23 +165,69 @@ export const requestSlot = async(user_email,doc_id,time,date,mode)=>{
     }
 }
 
-export const createDoctor = async ({name,gender,specification,experience,description,location,degree,availability }) => {
-    try{
-        if(!name || !gender || !specification || !experience || !description || !location || !degree || !availability)  throw new Error('Mandatory input missing');
+export const createDoctor = async ({ name, gender, specification, experience, description, location, degree, availability }) => {
+    try {
+        if (!name || !gender || !specification || !experience || !description || !location || !degree || !availability) throw new Error('Mandatory input missing');
         const result = await pool.query(
             `INSERT INTO doctor (name,gender,specification,experience,description,location,degree,availability) 
             VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
-        [name,gender,specification,experience,description,location,degree,JSON.stringify(availability)]);
-        if(!result.rowCount) throw new Error('Error in creating doctor');
+            [name, gender, specification, experience, description, location, degree, JSON.stringify(availability)]);
+        if (!result.rowCount) throw new Error('Error in creating doctor');
         return {
             success: true,
             data: result.rows[0],
         }
-    } catch(err){
-        console.log('Error in createDoctor service : ',err);
+    } catch (err) {
+        console.log('Error in createDoctor service : ', err);
         return {
             success: false,
             error: err.message || 'Error in createDoctor service',
         }
     }
 }
+
+
+export const declineOtherOverlapSlots = async (slot_id, doc_id, slot_time, slot_date) => {
+    try {
+        if (!doc_id || !slot_time || !slot_date) throw new Error('Mandatory input missing');
+        const result = await pool.query(
+            `UPDATE slot_booking SET status = $1 
+            WHERE doc_id = $2 AND slot_time = $3 AND slot_date = $4 AND slot_id <> $5 RETURNING *`,
+            ["canceled", doc_id, slot_time, slot_date, slot_id]
+        );
+        if (result.rowCount === 0) throw new Error('Error in declining slots');
+        return {
+            success: true,
+            // data: result.rows,
+        }
+    } catch (err) {
+        console.log('Error in declineOverlapSlots service : ', err);
+        return {
+            success: false,
+            error: err.message || 'Error in declineOverlapSlots service',
+        }
+    }
+}
+
+export const approveSlot = async ({ receivedSlotID}) => {
+    try {
+        if (!receivedSlotID) throw new Error('Slot ID missing');
+        const result = await pool.query(
+            `UPDATE slot_booking SET status = $1 
+            WHERE slot_id = $2 RETURNING *`, ["confirmed", receivedSlotID]);
+        if (result.rowCount === 0) throw new Error('Error in approving slot');
+        const { slot_id, doc_id, slot_time, slot_date } = result.rows[0];
+        const responseFromDecline = await declineOtherOverlapSlots(slot_id, doc_id, slot_time, slot_date);
+        if (!responseFromDecline.success) throw new Error('Error in declining overlapping slots');
+        return {
+            success: true,
+            data: result.rows[0],
+        }
+    } catch (err) {
+        console.log('Error in approveSlot service : ', err);
+        return {
+            success: false,
+            error: err.message || 'Error in approveSlot service',
+        }
+    }
+};
