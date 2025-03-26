@@ -144,3 +144,23 @@ export const findDoctorById = async (doctorId) => {
         }
     }
 }
+
+export const requestSlot = async(user_email,doc_id,time,date,mode)=>{
+    try{
+        const result = await pool.query
+        (`INSERT INTO slot_booking(user_email,doc_id,slot_time,slot_date,book_mode,status) 
+            VALUES($1,$2,$3,$4,$5,$6) RETURNING *`,[user_email,doc_id,time,date,mode,"pending"]);
+        // console.log('Result(requestSlot service) : ------->',result);
+        if(result.rowCount === 0)   throw new Error('Error in booking slot');
+        return {
+            success: true,
+            data: result.rows[0],
+        }
+    } catch(err){
+        console.log('Error in requestSlot service : ',err);
+        return {
+            success: false,
+            error: err.message || 'Error in requestSlot service',
+        }
+    }
+}

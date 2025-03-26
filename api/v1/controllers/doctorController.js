@@ -1,5 +1,5 @@
 import express from 'express';
-import { getFilteredDoctors, searchDoctors, findDoctorById, getAllDoctors } from '../services/doctorService.js';
+import { getFilteredDoctors, searchDoctors, findDoctorById, getAllDoctors, requestSlot } from '../services/doctorService.js';
 import { authenticateUser } from '../../middleware/authMiddleware.js';
 const router = express.Router();
 
@@ -57,5 +57,17 @@ router.get('/searchDoctor/:id', authenticateUser, async (req, res) => {
     }
 }
 );
+
+router.post('/book', async(req, res) => {
+    try{
+        const {doctorId, email, date, time, mode} = req.body;
+        const response = await requestSlot(email, doctorId, time, date, mode);
+        if(!response.success) throw new Error('Error in booking slot');
+        return res.status(200).send({data: response.data});
+    }catch(err){
+        console.log('request slot controller catch ', err);
+        return res.status(400).send({ message: err.message || 'Error in slot request controller' });
+    }
+});
 
 export default router;
