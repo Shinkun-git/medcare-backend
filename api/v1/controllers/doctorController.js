@@ -1,6 +1,5 @@
 import express from 'express';
-import { getFilteredDoctors, searchDoctors, findDoctorById, getAllDoctors,
-     requestSlot, createDoctor ,approveSlot} from '../services/doctorService.js';
+import { getFilteredDoctors, searchDoctors, findDoctorById, getAllDoctors, createDoctor } from '../services/doctorService.js';
 import { authenticateUser } from '../../middleware/authMiddleware.js';
 const router = express.Router();
 
@@ -17,7 +16,7 @@ router.get('/all', authenticateUser, async (req, res) => {
     }
 });
 
-router.get('/', authenticateUser, async (req, res) => {
+router.get('/filteredDoctors', authenticateUser, async (req, res) => {
     try {
         const { page, limit, rating, experience, gender } = req.query;
         console.log(`=============>pges ${page} limit ${limit} rating ${rating} exp  ${experience} gen ${gender}`);
@@ -59,19 +58,6 @@ router.get('/searchDoctor/:id', authenticateUser, async (req, res) => {
 }
 );
 
-router.post('/book', async(req, res) => {
-    try{
-        const {doctorId, email, date, time, mode} = req.body;
-        const response = await requestSlot(email, doctorId, time, date, mode);
-        if(!response.success) throw new Error('Error in booking slot');
-        return res.status(200).send({data: response.data});
-    }catch(err){
-        console.log('request slot controller catch ', err);
-        return res.status(400).send({ message: err.message || 'Error in slot request controller' });
-    }
-});
-
-
 //admin only routes
 router.post('/createDoctor', async (req, res) => {
     try{
@@ -84,15 +70,6 @@ router.post('/createDoctor', async (req, res) => {
     }
 });
 
-router.post('/approveSlot', async (req, res) => {
-    try{
-        const response = await approveSlot(req.body);
-        if(!response.success) throw new Error('Error in approving slot');
-        return res.status(200).send({data: response.data});
-    } catch(err){
-        console.log('Approve slot controller catch ', err);
-        return res.status(400).send({ message: err.message || 'Error in approve slot controller' });
-    }
-});
+
 
 export default router;

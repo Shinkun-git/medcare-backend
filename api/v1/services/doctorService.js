@@ -145,26 +145,6 @@ export const findDoctorById = async (doctorId) => {
     }
 }
 
-export const requestSlot = async (user_email, doc_id, time, date, mode) => {
-    try {
-        const result = await pool.query
-            (`INSERT INTO slot_booking(user_email,doc_id,slot_time,slot_date,book_mode,status) 
-            VALUES($1,$2,$3,$4,$5,$6) RETURNING *`, [user_email, doc_id, time, date, mode, "pending"]);
-        // console.log('Result(requestSlot service) : ------->',result);
-        if (result.rowCount === 0) throw new Error('Error in booking slot');
-        return {
-            success: true,
-            data: result.rows[0],
-        }
-    } catch (err) {
-        console.log('Error in requestSlot service : ', err);
-        return {
-            success: false,
-            error: err.message || 'Error in requestSlot service',
-        }
-    }
-}
-
 export const createDoctor = async ({ name, gender, specification, experience, description, location, degree, availability }) => {
     try {
         if (!name || !gender || !specification || !experience || !description || !location || !degree || !availability) throw new Error('Mandatory input missing');
@@ -187,47 +167,6 @@ export const createDoctor = async ({ name, gender, specification, experience, de
 }
 
 
-export const declineOtherOverlapSlots = async (slot_id, doc_id, slot_time, slot_date) => {
-    try {
-        if (!doc_id || !slot_time || !slot_date) throw new Error('Mandatory input missing');
-        const result = await pool.query(
-            `UPDATE slot_booking SET status = $1 
-            WHERE doc_id = $2 AND slot_time = $3 AND slot_date = $4 AND slot_id <> $5 RETURNING *`,
-            ["canceled", doc_id, slot_time, slot_date, slot_id]
-        );
-        if (result.rowCount === 0) throw new Error('Error in declining slots');
-        return {
-            success: true,
-            // data: result.rows,
-        }
-    } catch (err) {
-        console.log('Error in declineOverlapSlots service : ', err);
-        return {
-            success: false,
-            error: err.message || 'Error in declineOverlapSlots service',
-        }
-    }
-}
 
-export const approveSlot = async ({ receivedSlotID}) => {
-    try {
-        if (!receivedSlotID) throw new Error('Slot ID missing');
-        const result = await pool.query(
-            `UPDATE slot_booking SET status = $1 
-            WHERE slot_id = $2 RETURNING *`, ["confirmed", receivedSlotID]);
-        if (result.rowCount === 0) throw new Error('Error in approving slot');
-        const { slot_id, doc_id, slot_time, slot_date } = result.rows[0];
-        const responseFromDecline = await declineOtherOverlapSlots(slot_id, doc_id, slot_time, slot_date);
-        if (!responseFromDecline.success) throw new Error('Error in declining overlapping slots');
-        return {
-            success: true,
-            data: result.rows[0],
-        }
-    } catch (err) {
-        console.log('Error in approveSlot service : ', err);
-        return {
-            success: false,
-            error: err.message || 'Error in approveSlot service',
-        }
-    }
-};
+
+

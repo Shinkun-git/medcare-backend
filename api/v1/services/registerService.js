@@ -6,7 +6,7 @@ const signAsync = promisify(jwt.sign);
 
 export const generateToken = async (payload) => {
     try{
-        return await signAsync(payload, process.env.JWT_SECRET_KEY, {expiresIn: 60*5});
+        return await signAsync(payload, process.env.JWT_SECRET_KEY, {expiresIn: 60*60});
     } catch (error) {     
         console.log('error in generate token ', error);
         return null;
