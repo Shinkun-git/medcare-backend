@@ -7,8 +7,8 @@ const app = express();
 
 app.use(cookieParser());
 const allowedOrigins = [
-    "http://localhost:3000",
-    "http://localhost:8080",
+    process.env.MEDCARE_BASE_URL,
+    process.env.ADMIN_BASE_URL,
   ];
   
   app.use(
