@@ -7,7 +7,7 @@ export const getBookedSlots = async ({ doctorId, input_date }) => {
             `SELECT slot_time FROM slot_booking WHERE doc_id = $1 AND slot_date = $2 AND status = $3`, [doctorId, input_date, "confirmed"]);
         return {
             success: true,
-            data: result.rows,
+            data: result.rows.map(slot=>slot.slot_time),
         }
     } catch (err) {
         console.log(`Error in getBookedSlots service `, err.message);
