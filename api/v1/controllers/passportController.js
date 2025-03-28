@@ -1,6 +1,5 @@
 import express from 'express';
 import passport from '../services/passportService.js';
-import { generateToken } from '../services/registerService.js';
 const router = express.Router();
 
 router.get('/google', passport.authenticate('google', {
@@ -12,21 +11,23 @@ router.get('/google', passport.authenticate('google', {
 router.get('/google/callback', passport.authenticate('google', {
     session: false,
 }), async (req, res) => {
-    if (!req.user) {
+    // console.log("Google Callback - User Authenticated:", req.user);
+    if (!req.user || !req.user.token) {
         return res.status(401).json({ message: "Authentication failed" });
     }
 
-    const token = await generateToken({ id: req.user.id, email: req.user.email, name: req.user.name },
-        process.env.JWT_SECRET_KEY,
-        { expiresIn: 60 * 15 }
-    )
+    // ✅ Extract token correctly from `req.user.token`
+    const token = req.user.token;
+
+    // ✅ Set an HTTP-only secure cookie
     res.cookie("token", token, {
-        httpOnly: true,  // Prevents JavaScript access (XSS protection)
-        secure: process.env.NODE_ENV === "production", // Send only over HTTPS in production
-        sameSite: "Lax",  // Prevent CSRF attacks
-        maxAge: 3600000,  // 1 hour expiration
+        httpOnly: true,  
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "Lax",
+        maxAge: 3600000, // 1 hour expiration
     });
 
+    // ✅ Redirect to your frontend (Next.js)
     res.redirect(`${process.env.MEDCARE_BASE_URL}/landingPage`);
 
 });

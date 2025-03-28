@@ -11,12 +11,12 @@ passport.use(new GoogleStrategy({
     passReqToCallback: true,
 },
     async (request, accessToken, refreshToken, profile, done) => {
-        console.log(`got profile from google-----------
-            ${profile}
-            -------------------------------`);
+        // console.log(`got profile from google-----------
+        //     ${profile}
+        //     -------------------------------`);
         try {
             if (!profile) throw new Error('No profile received from google.');
-            const { email, name } = profile;
+            const { email, displayName } = profile;
             let user = await pool.query(
                 `SELECT user_email,user_name from users WHERE user_email = $1`, [email]
             );
@@ -24,11 +24,15 @@ passport.use(new GoogleStrategy({
             if (!user.rowCount) {
                 const createdUser = await pool.query(
                     `INSERT INTO users (user_email,user_name,password) 
-                    VALUES ($1, $2, $3) RETURNING *`, [email, name, "null"]
+                    VALUES ($1, $2, $3) RETURNING *`, [email, displayName, "null"]
                 );
                 user = createdUser;
             }
-            const token = await generateToken(user.rows[0]);
+            // console.log('User in passport service : ',user);
+            // console.log('User in passport service(data) : ',user.rows[0]);
+            const {user_name, user_email} = user.rows[0];
+            const token = await generateToken({email:user_email,name:user_name});
+            // console.log("token is : " ,token);
             return done(null, {token});
         } catch (err) {
             console.log(`Error in google strat. callback`, err);
