@@ -154,7 +154,21 @@ export const createDoctor = async ({ name, gender, specification, experience, de
     }
 }
 
-
-
-
-
+export const deleteDoctor = async(id)=>{
+    try{
+        if(!id) throw new Error('ID must be there to delete doctor.');
+        const result = await pool.query(
+            `DELETE FROM doctor WHERE doc_id = $1 RETURNING doc_id,name`,[id]
+        ); 
+        return {
+            success:true,
+            data: result.rowCount?result.rows[0]:[],
+        }
+    } catch(err){
+        console.log('Error in deleteDoctor service',err);
+        return {
+            success:false,
+            message:err.message||'Error in deleteDoctor service',
+        }
+    }
+}

@@ -1,5 +1,5 @@
 import express from 'express';
-import { getAllDoctors, getDoctors , findDoctorById, createDoctor } from '../services/doctorService.js';
+import { getAllDoctors, getDoctors , findDoctorById, createDoctor, deleteDoctor } from '../services/doctorService.js';
 import { authenticateUser } from '../../middleware/authMiddleware.js';
 const router = express.Router();
 
@@ -16,7 +16,7 @@ router.get('/all', authenticateUser, async (req, res) => {
     }
 });
 
-router.get('/search' , async (req, res) => {
+router.get('/search' , authenticateUser,async (req, res) => {
     try {
         const { page, limit, rating, experience, gender, searchQuery } = req.query;
 
@@ -58,7 +58,7 @@ router.get('/searchDoctor/:id', authenticateUser, async (req, res) => {
 );
 
 //admin only routes
-router.post('/createDoctor', async (req, res) => {
+router.post('/createDoctor', authenticateUser,async (req, res) => {
     try{
         const response = await createDoctor(req.body);
         if(!response.success) throw new Error('Error in creating doctor');
@@ -69,6 +69,16 @@ router.post('/createDoctor', async (req, res) => {
     }
 });
 
-
+router.delete('/delete/:id', authenticateUser, async(req,res)=>{
+    try{
+        const {id} = req.params;
+        const response = await deleteDoctor(id);
+        if(!response.success) throw new Error('Error in deleting Doctor.');
+        return res.status(200).send({data: response.data});
+    } catch(err){
+        console.log('Delete doctor controller catch ', err);
+        return res.status(400).send({ message: err.message || 'Error in delete doctor controller' });
+    }
+})
 
 export default router;
