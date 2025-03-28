@@ -3,6 +3,8 @@ import api from './api/index.js';
 import 'dotenv/config';
 import cors from "cors";
 import cookieParser from 'cookie-parser';
+import passport from 'passport';
+import session from 'express-session';
 const app = express();
 
 app.use(cookieParser());
@@ -24,7 +26,14 @@ const allowedOrigins = [
       credentials: true
     })
   );
-
+  
+  app.use(session({
+    secret:process.env.SESSION_SECRET,
+    resave:false,
+    saveUninitialized:true,
+  }))
+  app.use(passport.initialize());
+  app.use(passport.session());
 app.use('/api',api);
 
 
