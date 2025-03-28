@@ -1,6 +1,6 @@
 import express from 'express';
 import { authenticateUser } from '../../middleware/authMiddleware.js';
-import { getBookedSlots,requestSlot,declineOtherOverlapSlots,approveSlot } from '../services/slotService.js';
+import { getBookedSlots,requestSlot,declineOtherOverlapSlots,approveSlot, getAllSlots, declineSlot } from '../services/slotService.js';
 const router = express.Router();
 
 router.post('/book', async(req, res) => {
@@ -17,7 +17,7 @@ router.post('/book', async(req, res) => {
 
 
 
-router.post('/approveSlot', async (req, res) => {
+router.post('/approve', async (req, res) => {
     try{
         const response = await approveSlot(req.body);
         if(!response.success) throw new Error('Error in approving slot');
@@ -39,4 +39,25 @@ router.post('/bookedSlots', async(req,res)=>{
     }
 });
 
+router.get('/all', async(req,res)=>{
+    try{
+        const response = await getAllSlots();
+        if(!response.success) throw new Error('Response failed from getAllSlots');
+        return res.status(200).send({data: response.data});
+    }catch(err){
+        console.log('getAllSlot controller catch ',err);
+        return res.status(400).send({message:err.message});
+    }
+})
+
+router.post('/cancel', async(req,res)=>{
+    try{
+        const response = await declineSlot(req.body);
+        if(!response.success) throw new Error('Response failed from declineSlot');
+        return res.status(200).send({data: response.data});
+    } catch(err){
+        console.log('declineSlot controller catch ',err);
+        return res.status(400).send({message:err.message});
+    }
+})
 export default router;
