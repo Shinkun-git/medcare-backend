@@ -145,13 +145,15 @@ export const findDoctorById = async (doctorId) => {
     }
 }
 
-export const createDoctor = async ({ name, gender, specification, experience, description, location, degree, availability }) => {
+const defaultAvailability = {Friday: ["09:00-12:30", "16:00-19:30"], "Monday": ["09:00-12:30", "16:00-19:30"], "Sunday": ["09:00-12:30", "16:00-19:30"], "Tuesday": ["09:00-12:30", "16:00-19:30"], "Saturday": ["09:00-12:30", "16:00-19:30"], "Thursday": ["09:00-12:30", "16:00-19:30"], "Wednesday": ["09:00-12:30", "16:00-19:30"]};
+const defaultImageURL = "/";
+export const createDoctor = async ({ name, gender, specification, experience, description, location, degree, availability=defaultAvailability, image_url=defaultImageURL}) => {
     try {
-        if (!name || !gender || !specification || !experience || !description || !location || !degree || !availability) throw new Error('Mandatory input missing');
+        if (!name || !gender || !specification || !experience || !description || !location || !degree) throw new Error('Mandatory input missing');
         const result = await pool.query(
-            `INSERT INTO doctor (name,gender,specification,experience,description,location,degree,availability) 
-            VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
-            [name, gender, specification, experience, description, location, degree, JSON.stringify(availability)]);
+            `INSERT INTO doctor (name,gender,specification,experience,description,location,degree,availability,image_url) 
+            VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
+            [name, gender, specification, experience, description, location, degree, JSON.stringify(availability),image_url]);
         if (!result.rowCount) throw new Error('Error in creating doctor');
         return {
             success: true,
