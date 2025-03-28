@@ -16,42 +16,60 @@ export const getAllDoctors = async () => {
     }
 };
 
-export const getFilteredDoctors = async (page = 1, limit = 6, rating, experience, gender) => {
-    let query = "SELECT * FROM doctor";
-    let countQuery = "SELECT COUNT(*) AS count FROM doctor";
+export const getDoctors = async ({ searchQuery, page = 1, limit = 6, rating, experience, gender }) => {
+    let baseQuery = `
+        SELECT DISTINCT d.doc_id,d.name, d.degree, d.specification, d.experience, d.rating, d.image_url  
+        FROM doctor d
+        LEFT JOIN disease_doctor dd ON d.doc_id = dd.doc_id
+        LEFT JOIN disease di ON dd.disease_id = di.disease_id
+    `;
+
+    let countQuery = `
+        SELECT COUNT(DISTINCT d.doc_id) AS count
+        FROM doctor d
+        LEFT JOIN disease_doctor dd ON d.doc_id = dd.doc_id
+        LEFT JOIN disease di ON dd.disease_id = di.disease_id
+    `;
 
     const conditions = [];
     const values = [];
 
-    // ✅ Apply filters dynamically
+    // ✅ Search condition (for name, specialization, or disease)
+    if (searchQuery) {
+        conditions.push(`(d.name ILIKE $${values.length + 1} OR d.specification ILIKE $${values.length + 1} OR di.name ILIKE $${values.length + 1})`);
+        values.push(`%${searchQuery}%`);
+    }
+
+    // ✅ Filtering by rating
     if (rating && !isNaN(Number(rating))) {
-        conditions.push(`rating = $${values.length + 1}`);
+        conditions.push(`d.rating = $${values.length + 1}`);
         values.push(Number(rating));
     }
-    if (experience) {
-        const experienceRanges = {
-            "15+ years": [15, Infinity], // 15 or more years
-            "10-15 years": [10, 15], // Between 10 and 15 years
-            "5-10 years": [5, 10], // Between 5 and 10 years
-            "3-5 years": [3, 5], // Between 3 and 5 years
-            "1-3 years": [1, 3], // Between 1 and 3 years
-            "0-1 years": [0, 1], // Between 0 and 1 years
-        };
 
-        if (experienceRanges[experience]) {
-            const [minExp, maxExp] = experienceRanges[experience];
-            if (maxExp === Infinity) {
-                conditions.push(`experience >= $${values.length + 1}`);
-                values.push(minExp);
-            } else {
-                conditions.push(`experience BETWEEN $${values.length + 1} AND $${values.length + 2}`);
-                values.push(minExp, maxExp);
-            }
+    // ✅ Filtering by experience
+    const experienceRanges = {
+        "15+ years": [15, Infinity],
+        "10-15 years": [10, 15],
+        "5-10 years": [5, 10],
+        "3-5 years": [3, 5],
+        "1-3 years": [1, 3],
+        "0-1 years": [0, 1],
+    };
+
+    if (experienceRanges[experience]) {
+        const [minExp, maxExp] = experienceRanges[experience];
+        if (maxExp === Infinity) {
+            conditions.push(`d.experience >= $${values.length + 1}`);
+            values.push(minExp);
+        } else {
+            conditions.push(`d.experience BETWEEN $${values.length + 1} AND $${values.length + 2}`);
+            values.push(minExp, maxExp);
         }
     }
 
+    // ✅ Filtering by gender
     if (gender && gender !== "Show All") {
-        conditions.push(`gender = $${values.length + 1}`);
+        conditions.push(`d.gender = $${values.length + 1}`);
         values.push(gender);
     }
 
@@ -59,22 +77,21 @@ export const getFilteredDoctors = async (page = 1, limit = 6, rating, experience
     const whereClause = conditions.length ? ` WHERE ${conditions.join(" AND ")}` : "";
 
     // ✅ Append WHERE clause to both queries
-    query += whereClause;
+    baseQuery += whereClause;
     countQuery += whereClause;
 
-    // ✅ Pagination (Only for main query)
+    // ✅ Pagination
     const offset = (page - 1) * limit;
-    query += ` LIMIT $${values.length + 1} OFFSET $${values.length + 2}`;
+    baseQuery += ` ORDER BY rating DESC, d.doc_id ASC LIMIT $${values.length + 1} OFFSET $${values.length + 2}`;
     values.push(Number(limit), Number(offset));
 
     try {
-        // ✅ Run count query without pagination
+        // ✅ Run count query (without pagination)
         const totalDoctors = await pool.query(countQuery, values.slice(0, values.length - 2));
-        console.log("Total doctors:", totalDoctors.rows);
         const totalCount = Number(totalDoctors.rows[0].count);
-        console.log("Total count:", totalCount);
+
         // ✅ Run main query with pagination
-        const doctors = await pool.query(query, values);
+        const doctors = await pool.query(baseQuery, values);
 
         return {
             success: true,
@@ -93,37 +110,6 @@ export const getFilteredDoctors = async (page = 1, limit = 6, rating, experience
     }
 };
 
-export const searchDoctors = async (searchQuery, page = 1, limit = 6) => {
-    try {
-        const countQuery = `SELECT COUNT(*) AS count FROM doctor WHERE name ILIKE $1 OR specification ILIKE $1`;
-        const searchSQL = `SELECT * FROM doctor WHERE name ILIKE $1 OR specification ILIKE $1 LIMIT $2 OFFSET $3`;
-
-        const offset = (page - 1) * limit;
-        const searchParam = `%${searchQuery}%`;
-
-        // Get total count of matching doctors
-        const totalDoctors = await pool.query(countQuery, [searchParam]);
-        const totalCount = Number(totalDoctors.rows[0].count);
-
-        // Get paginated search results
-        const doctors = await pool.query(searchSQL, [searchParam, Number(limit), Number(offset)]);
-        console.log("searchDoctors -> doctors", doctors.rows.map((doctor) => doctor.name));
-        return {
-            success: true,
-            data: {
-                total: totalCount, // Total matching doctors
-                pages: Math.ceil(totalCount / limit), // Total pages
-                data: doctors.rows, // Doctors for current page
-            },
-        };
-    } catch (error) {
-        console.error("Error searching doctors:", error);
-        return {
-            success: false,
-            error: error.message,
-        };
-    }
-};
 
 export const findDoctorById = async (doctorId) => {
     try {

@@ -1,5 +1,5 @@
 import express from 'express';
-import { getFilteredDoctors, searchDoctors, findDoctorById, getAllDoctors, createDoctor } from '../services/doctorService.js';
+import { getAllDoctors, getDoctors , findDoctorById, createDoctor } from '../services/doctorService.js';
 import { authenticateUser } from '../../middleware/authMiddleware.js';
 const router = express.Router();
 
@@ -16,33 +16,32 @@ router.get('/all', authenticateUser, async (req, res) => {
     }
 });
 
-router.get('/filteredDoctors', authenticateUser, async (req, res) => {
+router.get('/search' , async (req, res) => {
     try {
-        const { page, limit, rating, experience, gender } = req.query;
-        console.log(`=============>pges ${page} limit ${limit} rating ${rating} exp  ${experience} gen ${gender}`);
-        const response = await getFilteredDoctors(parseInt(page, 10), parseInt(limit, 10), parseInt(rating[0]), experience, gender);
+        const { page, limit, rating, experience, gender, searchQuery } = req.query;
+
+        console.log(`Received Request => page: ${page}, limit: ${limit}, rating: ${rating}, experience: ${experience}, gender: ${gender}, searchQuery: ${searchQuery}`);
+
+        const response = await getDoctors({
+            searchQuery,
+            page: parseInt(page, 10) || 1,
+            limit: parseInt(limit, 10) || 6,
+            rating: rating ? parseInt(rating, 10) : undefined,
+            experience,
+            gender
+        });
+
         if (response.success) {
-            return res.status(200).send({ data: response.data });
-        } else throw new Error('Error in get API');
+            return res.status(200).json({ data: response.data });
+        } else {
+            throw new Error('Error fetching doctors');
+        }
     } catch (err) {
-        console.log('Get api(filtered) controller catch ', err);
-        return res.status(400).send({ message: err.message || '' });
+        console.error('Doctors API Error:', err);
+        return res.status(400).json({ message: err.message || 'Something went wrong' });
     }
 });
 
-router.get('/searchDoctor', authenticateUser, async (req, res) => {
-    try {
-        const { page, limit, searchQuery } = req.query;
-        // console.log('Search Query',searchQuery);
-        const response = await searchDoctors(searchQuery, page, limit);
-        if (response.success) {
-            return res.status(200).send({ data: response.data });
-        } else throw new Error('Error in search API');
-    } catch (err) {
-        console.log('Search Doctor controller catch ', err);
-        return res.status(400).send({ message: err.message || '' });
-    }
-});
 
 router.get('/searchDoctor/:id', authenticateUser, async (req, res) => {
     try {
