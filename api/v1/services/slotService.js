@@ -31,6 +31,15 @@ export const requestSlot = async (user_email, doc_id, time, date, mode) => {
         }
     } catch (err) {
         console.log('Error in requestSlot service : ', err);
+        
+        // Handle unique constraint violation (PostgreSQL error code for unique violation: 23505)
+        if (err.code === '23505') {
+            return {
+                success: false,
+                error: 'Slot is already booked (confirmed). Please choose another slot.',
+            };
+        }
+
         return {
             success: false,
             error: err.message || 'Error in requestSlot service',
@@ -93,13 +102,14 @@ export const getAllSlots = async () => {
     try {
         const result = await pool.query(
             `SELECT 
-            slot_id, user_name, name, slot_date,slot_time,book_mode,status,created_at,location
+            slot_id, user_name, name, slot_date::TEXT AS slot_date,slot_time,book_mode,status,created_at,location
              FROM slot_booking INNER JOIN 
             doctor ON slot_booking.doc_id = doctor.doc_id INNER JOIN 
-            users ON users.user_email = slot_booking.user_email`, []
+            users ON users.user_email = slot_booking.user_email ORDER BY created_at DESC`, []
         );
-        if (!result.rowCount) throw new Error('getAllSlots returned nothing.')
-            console.log(result.rows[0])
+        if (!result.rowCount) {throw new Error('getAllSlots returned nothing.')}
+        
+        // console.log(result.rows[0]);
         return {
             success: true,
             data: result.rows

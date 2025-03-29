@@ -1,10 +1,11 @@
 import express from 'express';
 import { getAllDoctors, getDoctors , findDoctorById, createDoctor, deleteDoctor } from '../services/doctorService.js';
 import { authenticateUser } from '../../middleware/authMiddleware.js';
+import {isAdmin} from "../../middleware/isAdmin.js";
 const router = express.Router();
 
 
-router.get('/all', authenticateUser, async (req, res) => {
+router.get('/all', authenticateUser, isAdmin,async (req, res) => {
     try {
         const response = await getAllDoctors();
         if (response.success) {
@@ -16,7 +17,7 @@ router.get('/all', authenticateUser, async (req, res) => {
     }
 });
 
-router.get('/search' , authenticateUser,async (req, res) => {
+router.get('/search',authenticateUser,async (req, res) => {
     try {
         const { page, limit, rating, experience, gender, searchQuery } = req.query;
 
@@ -58,7 +59,7 @@ router.get('/searchDoctor/:id', authenticateUser, async (req, res) => {
 );
 
 //admin only routes
-router.post('/createDoctor', authenticateUser,async (req, res) => {
+router.post('/createDoctor', authenticateUser, isAdmin,async (req, res) => {
     try{
         const response = await createDoctor(req.body);
         if(!response.success) throw new Error('Error in creating doctor');
@@ -69,7 +70,7 @@ router.post('/createDoctor', authenticateUser,async (req, res) => {
     }
 });
 
-router.delete('/delete/:id', authenticateUser, async(req,res)=>{
+router.delete('/delete/:id', authenticateUser,isAdmin, async(req,res)=>{
     try{
         const {id} = req.params;
         const response = await deleteDoctor(id);

@@ -23,8 +23,8 @@ passport.use(new GoogleStrategy({
 
             if (!user.rowCount) {
                 const createdUser = await pool.query(
-                    `INSERT INTO users (user_email,user_name,password) 
-                    VALUES ($1, $2, $3) RETURNING *`, [email, displayName, "null"]
+                    `INSERT INTO users (user_email,user_name) 
+                    VALUES ($1, $2) RETURNING user_email,user_name`, [email, displayName, "null"]
                 );
                 user = createdUser;
             }
@@ -40,25 +40,5 @@ passport.use(new GoogleStrategy({
         }
     }
 ));
-
-// passport.serializeUser((email, done) => {
-//     console.log(`Serializing USER ------------
-//         ${email}`);
-//     done(null, email);
-// })
-
-// passport.deserializeUser(async (email, done) => {
-//     try {
-//         const result = await pool.query(
-//             `SELECT user_email,user_name from users WHERE user_email = $1`, [email]
-//         );
-//         if (!result.rowCount) throw new Error(`No user with email ${email}`);
-//         const user = result.rows[0];
-//         console.log("User at deserialize", user);
-//         done(null, user);
-//     } catch (err) {
-//         done(err);
-//     }
-// });
 
 export default passport;
