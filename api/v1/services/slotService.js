@@ -1,5 +1,5 @@
 import pool from '../../db/index.js';
-
+import sendMail from './nodemailerService.js';
 export const getBookedSlots = async ({ doctorId, input_date }) => {
     try {
         if (!input_date) throw new Error(`Input Date missing.`);
@@ -76,15 +76,19 @@ export const declineOtherOverlapSlots = async (slot_id, doc_id, slot_time, slot_
 
 export const approveSlot = async (requestBody) => {
     try {
-        const {slot_id} = requestBody;
+        const {slot_id,name} = requestBody;
         if (!slot_id) throw new Error('Slot ID missing');
         const result = await pool.query(
             `UPDATE slot_booking SET status = $1 
             WHERE slot_id = $2 RETURNING *`, ["confirmed", slot_id]);
         if (result.rowCount === 0) throw new Error('Error in approving slot');
-        const { doc_id, slot_time, slot_date } = result.rows[0];
+        const { user_email, doc_id, slot_time, slot_date } = result.rows[0];
         const responseFromDecline = await declineOtherOverlapSlots(slot_id, doc_id, slot_time, slot_date);
         if (!responseFromDecline.success) throw new Error('Error in declining overlapping slots');
+        
+        await sendMail(user_email, "Appointment Approved", 
+            `Your appointment on ${slot_date} at ${slot_time} with doctor ${name} has been approved.`
+          );
         return {
             success: true,
             data: result.rows[0],
