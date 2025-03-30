@@ -76,19 +76,30 @@ export const declineOtherOverlapSlots = async (slot_id, doc_id, slot_time, slot_
 
 export const approveSlot = async (requestBody) => {
     try {
-        const {slot_id,name} = requestBody;
+        const {slot_id} = requestBody;
         if (!slot_id) throw new Error('Slot ID missing');
+        
         const result = await pool.query(
-            `UPDATE slot_booking SET status = $1 
-            WHERE slot_id = $2 RETURNING *`, ["confirmed", slot_id]);
+            `UPDATE slot_booking sb SET status = $1 
+            FROM doctor d WHERE d.doc_id = sb.doc_id AND 
+            slot_id = $2 RETURNING sb.*,d.name,d.location`, ["confirmed", slot_id]);
+
         if (result.rowCount === 0) throw new Error('Error in approving slot');
-        const { user_email, doc_id, slot_time, slot_date } = result.rows[0];
+        
+        const { user_email, doc_id, name,location, slot_time, slot_date, book_mode } = result.rows[0];
+        
         const responseFromDecline = await declineOtherOverlapSlots(slot_id, doc_id, slot_time, slot_date);
         if (!responseFromDecline.success) throw new Error('Error in declining overlapping slots');
         
-        await sendMail(user_email, "Appointment Approved", 
-            `Your appointment on ${slot_date} at ${slot_time} with doctor ${name} has been approved.`
-          );
+        let emailMessage = `Your appointment on ${slot_date} at ${slot_time} with Dr. ${name} has been approved.`;
+
+        if (book_mode === "online") {
+            emailMessage += ` This is an online consultation. You will receive a meeting link soon.`;
+        } else if (book_mode === "offline") {
+            emailMessage += ` This is an in-person consultation at ${location}. Please arrive on time.`;
+        }
+
+        await sendMail(user_email, "Appointment Approved", emailMessage);
         return {
             success: true,
             data: result.rows[0],
