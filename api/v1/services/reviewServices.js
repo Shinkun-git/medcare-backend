@@ -18,3 +18,26 @@ export const getDoctorReviews = async(doc_id)=>{
         }
     }
 }
+
+export const addDoctorReview = async(requestBody)=>{
+    try{
+        const {user_email,doc_id,rating,review} = requestBody;
+        const result = await pool.query(
+            `INSERT INTO reviews (user_email, doc_id, rating, review) 
+            VALUES ($1, $2, $3, $4) RETURNING *`,
+            [user_email, doc_id, rating, review]
+        );
+
+        if(!result.rowCount) throw new Error(`Error adding review`);
+        return {
+            success : true,
+            data : result.rows[0]
+        }
+    } catch(err){
+        console.log(`Error in addDoctorReview serv. `,err);
+        return {
+            success:false,
+            message: "Error in adding review"
+        }
+    }
+}
