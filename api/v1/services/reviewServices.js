@@ -41,3 +41,20 @@ export const addDoctorReview = async(requestBody)=>{
         }
     }
 }
+
+export const getAllReviews = async()=>{
+    try{
+        const result = await pool.query(
+            `SELECT * FROM reviews`,[]);
+        return {
+            success:true,
+            data : result.rows
+        }
+    }  catch(err){
+        console.log(`Error in getAllReviews `,err);
+        return {
+            success: false,
+            message:'error fetching all reviews '
+        }
+    }
+}
